@@ -1,9 +1,12 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,7 +21,7 @@ class PointServiceTest {
     void ifNotExistSelectById() {
         // given
         long id = 1L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
 
          // when
         UserPoint result = pointService.selectById(id);
@@ -33,7 +36,7 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 1000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         // when
@@ -52,7 +55,7 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 0L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
@@ -73,7 +76,7 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000001L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
@@ -94,7 +97,7 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 100000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
 
@@ -117,7 +120,7 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
 
         // when
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
@@ -133,7 +136,7 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
 
@@ -154,7 +157,7 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
@@ -175,7 +178,7 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         Long uerPoint = 999L;
@@ -194,11 +197,11 @@ class PointServiceTest {
 
     @Test
     @DisplayName("잔여포인트가 있으면 1,000 이상 포인트를 사용할 수 있다.")
-    void test(){
+    void ifExistPointCanUsePoint(){
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable());
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         Long userPoint = 1000L;
 
@@ -207,5 +210,60 @@ class PointServiceTest {
 
         // then
         assertThat(result.point()).isEqualTo(point - userPoint);
+    }
+
+    /**
+     * 포인트 내역 조회
+     */
+    @Test
+    @DisplayName("포인트 내역이 없는 ID의 경우 0을 반환한다.")
+    void ifNotExistSelectHistory(){
+        // given
+        long id = 1L;
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+
+        // when
+        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+
+        // then
+        assertThat(pointHistoryList.size()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("포인트를 10번 충전하고 내역 개수를 확인한다.")
+    void ifInsertTenHistories(){
+        // given
+        long id = 1L;
+        long point = 10000L;
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        for (int i=0; i<10; i++){
+            pointService.insertOrUpdate(id,point, TransactionType.CHARGE);
+        }
+
+        // when
+        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+
+        // then
+        assertThat(pointHistoryList.size()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("포인트를 10번 충전하고 5번 사용하고 내역 개수를 확인한다.")
+    void ifInsertTenUseFiveHistories(){
+        // given
+        long id = 1L;
+        long point = 10000L;
+        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        for (int i=0; i<10; i++){
+            pointService.insertOrUpdate(id,point, TransactionType.CHARGE);
+        }
+        for (int i=0; i<5; i++){
+            pointService.insertOrUpdate(id,point, TransactionType.USE);
+        }
+        // when
+        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+
+        // then
+        assertThat(pointHistoryList.size()).isEqualTo(15);
     }
 }
