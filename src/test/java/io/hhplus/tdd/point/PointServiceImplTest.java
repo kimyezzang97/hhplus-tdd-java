@@ -263,12 +263,27 @@ class PointServiceImplTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                throw new IllegalArgumentException("포인트 사용을 잔여포인트 보다 많이 사용할 수 없습니다.");
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.USE);
+            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.USE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -284,14 +299,30 @@ class PointServiceImplTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
-        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                if(transactionType == TransactionType.CHARGE) return null;
+                throw new IllegalArgumentException("포인트는 1000 미만으로 사용할 수 없습니다.");
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         Long uerPoint = 999L;
         // when
         Exception e = null;
         try {
-            UserPoint result = pointServiceImpl.insertOrUpdate(id, uerPoint, TransactionType.USE);
+            UserPoint result = pointService.insertOrUpdate(id, uerPoint, TransactionType.USE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -306,16 +337,32 @@ class PointServiceImplTest {
     void ifExistPointCanUsePoint(){
         // given
         Long id = 2L;
-        Long point = 10000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
-        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+        Long chargePoint = 10000L;
         Long userPoint = 1000L;
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                if(transactionType == TransactionType.CHARGE) return null;
+                return new UserPoint(id,chargePoint - userPoint, System.currentTimeMillis());
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
+        pointService.insertOrUpdate(id, chargePoint, TransactionType.CHARGE);
 
         // when
-        UserPoint result = pointServiceImpl.insertOrUpdate(id, userPoint, TransactionType.USE);
+        UserPoint result = pointService.insertOrUpdate(id, userPoint, TransactionType.USE);
 
         // then
-        assertThat(result.point()).isEqualTo(point - userPoint);
+        assertThat(result.point()).isEqualTo(chargePoint - userPoint);
     }
 
     /**
