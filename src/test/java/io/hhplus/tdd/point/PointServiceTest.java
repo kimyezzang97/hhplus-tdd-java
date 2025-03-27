@@ -145,4 +145,67 @@ class PointServiceTest {
         assertThat(point + point2).isEqualTo(result.point());
     }
 
+    /**
+     * 포인트 사용
+     */
+    @Test
+    @DisplayName("포인트 사용을 잔여포인트 보다 많이 사용할 수 없다.")
+    void canNotUsePointMoreThanExistPoint() {
+        // given
+        Long id = 2L;
+        Long point = 10000L;
+        PointService pointService = new PointService(new UserPointTable());
+
+        // when
+        Exception e = null;
+        try {
+            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.USE);
+        } catch (Exception exception) {
+            e = exception;
+        }
+
+        // then
+        assert e.getMessage().contains("포인트 사용을 잔여포인트 보다 많이 사용할 수 없습니다.");
+        assert e instanceof IllegalArgumentException;
+    }
+
+    @Test
+    @DisplayName("포인트는 1,000 미만으로 사용할 수 없다.")
+    void canNotUsePointUnderThousandPoint(){
+        // given
+        Long id = 2L;
+        Long point = 10000L;
+        PointService pointService = new PointService(new UserPointTable());
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+
+        Long uerPoint = 999L;
+        // when
+        Exception e = null;
+        try {
+            UserPoint result = pointService.insertOrUpdate(id, uerPoint, TransactionType.USE);
+        } catch (Exception exception) {
+            e = exception;
+        }
+
+        // then
+        assert e.getMessage().contains("포인트는 1000 미만으로 사용할 수 없습니다.");
+        assert e instanceof IllegalArgumentException;
+    }
+
+    @Test
+    @DisplayName("잔여포인트가 있으면 1,000 이상 포인트를 사용할 수 있다.")
+    void test(){
+        // given
+        Long id = 2L;
+        Long point = 10000L;
+        PointService pointService = new PointService(new UserPointTable());
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        Long userPoint = 1000L;
+
+        // when
+        UserPoint result = pointService.insertOrUpdate(id, userPoint, TransactionType.USE);
+
+        // then
+        assertThat(result.point()).isEqualTo(point - userPoint);
+    }
 }
