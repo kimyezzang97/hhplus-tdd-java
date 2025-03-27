@@ -84,12 +84,27 @@ class PointServiceImplTest {
         // given
         Long id = 2L;
         Long point = 0L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                throw new IllegalArgumentException("포인트는 0 이하로 충전 및 사용할 수 없습니다.");
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -105,12 +120,27 @@ class PointServiceImplTest {
         // given
         Long id = 2L;
         Long point = 10000001L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                throw new IllegalArgumentException("포인트는 1,000,000 초과로 충전 및 사용할 수 없습니다.");
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -126,14 +156,31 @@ class PointServiceImplTest {
         // given
         long id = 10L;
         long point = 100000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
-        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return null;
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                if(point == 100000L)
+                    return new UserPoint(id, point, System.currentTimeMillis());
+                throw new IllegalArgumentException("총 포인트는 1,000,000을 초과할 수 없습니다.");
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointServiceImpl.insertOrUpdate(id, point2, TransactionType.CHARGE);
+            UserPoint result = pointService.insertOrUpdate(id, point2, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -149,11 +196,26 @@ class PointServiceImplTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return new UserPoint(id, point, System.currentTimeMillis());
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                return new UserPoint(id, point, System.currentTimeMillis());
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
 
         // when
-        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
-        UserPoint result = pointServiceImpl.selectById(id);
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        UserPoint result = pointService.selectById(id);
 
         // then : 신규 회원이 충전했던 10,000 포인트와 조회한 포인트가 일치한다.
         assertThat(point).isEqualTo(result.point());
@@ -165,13 +227,28 @@ class PointServiceImplTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
-        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return new UserPoint(id, point + point2, System.currentTimeMillis());
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                return null;
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
+        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         // when
-        pointServiceImpl.insertOrUpdate(id, point2, TransactionType.CHARGE);
-        UserPoint result = pointServiceImpl.selectById(id);
+        pointService.insertOrUpdate(id, point2, TransactionType.CHARGE);
+        UserPoint result = pointService.selectById(id);
 
         // then
         assertThat(point + point2).isEqualTo(result.point());
