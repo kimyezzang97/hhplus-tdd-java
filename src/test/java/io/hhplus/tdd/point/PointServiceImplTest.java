@@ -2,16 +2,14 @@ package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
-class PointServiceTest {
+class PointServiceImplTest {
 
     /**
      * 포인트 조회
@@ -21,7 +19,22 @@ class PointServiceTest {
     void ifNotExistSelectById() {
         // given
         long id = 1L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return new UserPoint(id, 0, System.currentTimeMillis());
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                return null;
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
 
          // when
         UserPoint result = pointService.selectById(id);
@@ -36,7 +49,23 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 1000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointService pointService = new PointService() {
+            @Override
+            public UserPoint selectById(Long id) {
+                return new UserPoint(id, point, System.currentTimeMillis());
+            }
+
+            @Override
+            public UserPoint insertOrUpdate(Long id, Long point, TransactionType transactionType) {
+                return null;
+            }
+
+            @Override
+            public List<PointHistory> selectHistory(Long id) {
+                return List.of();
+            }
+        };
+
         pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         // when
@@ -55,12 +84,12 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 0L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -76,12 +105,12 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000001L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -97,14 +126,14 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 100000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
-        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointService.insertOrUpdate(id, point2, TransactionType.CHARGE);
+            UserPoint result = pointServiceImpl.insertOrUpdate(id, point2, TransactionType.CHARGE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -120,11 +149,11 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
 
         // when
-        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
-        UserPoint result = pointService.selectById(id);
+        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
+        UserPoint result = pointServiceImpl.selectById(id);
 
         // then : 신규 회원이 충전했던 10,000 포인트와 조회한 포인트가 일치한다.
         assertThat(point).isEqualTo(result.point());
@@ -136,13 +165,13 @@ class PointServiceTest {
         // given
         long id = 10L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
-        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         long point2 = 500L;
 
         // when
-        pointService.insertOrUpdate(id, point2, TransactionType.CHARGE);
-        UserPoint result = pointService.selectById(id);
+        pointServiceImpl.insertOrUpdate(id, point2, TransactionType.CHARGE);
+        UserPoint result = pointServiceImpl.selectById(id);
 
         // then
         assertThat(point + point2).isEqualTo(result.point());
@@ -157,12 +186,12 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
 
         // when
         Exception e = null;
         try {
-            UserPoint result = pointService.insertOrUpdate(id, point, TransactionType.USE);
+            UserPoint result = pointServiceImpl.insertOrUpdate(id, point, TransactionType.USE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -178,14 +207,14 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
-        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
 
         Long uerPoint = 999L;
         // when
         Exception e = null;
         try {
-            UserPoint result = pointService.insertOrUpdate(id, uerPoint, TransactionType.USE);
+            UserPoint result = pointServiceImpl.insertOrUpdate(id, uerPoint, TransactionType.USE);
         } catch (Exception exception) {
             e = exception;
         }
@@ -201,12 +230,12 @@ class PointServiceTest {
         // given
         Long id = 2L;
         Long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
-        pointService.insertOrUpdate(id, point, TransactionType.CHARGE);
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
+        pointServiceImpl.insertOrUpdate(id, point, TransactionType.CHARGE);
         Long userPoint = 1000L;
 
         // when
-        UserPoint result = pointService.insertOrUpdate(id, userPoint, TransactionType.USE);
+        UserPoint result = pointServiceImpl.insertOrUpdate(id, userPoint, TransactionType.USE);
 
         // then
         assertThat(result.point()).isEqualTo(point - userPoint);
@@ -220,10 +249,10 @@ class PointServiceTest {
     void ifNotExistSelectHistory(){
         // given
         long id = 1L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
 
         // when
-        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+        List<PointHistory> pointHistoryList = pointServiceImpl.selectHistory(id);
 
         // then
         assertThat(pointHistoryList.size()).isEqualTo(0);
@@ -235,13 +264,13 @@ class PointServiceTest {
         // given
         long id = 1L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
         for (int i=0; i<10; i++){
-            pointService.insertOrUpdate(id,point, TransactionType.CHARGE);
+            pointServiceImpl.insertOrUpdate(id,point, TransactionType.CHARGE);
         }
 
         // when
-        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+        List<PointHistory> pointHistoryList = pointServiceImpl.selectHistory(id);
 
         // then
         assertThat(pointHistoryList.size()).isEqualTo(10);
@@ -253,15 +282,15 @@ class PointServiceTest {
         // given
         long id = 1L;
         long point = 10000L;
-        PointService pointService = new PointService(new UserPointTable(), new PointHistoryTable());
+        PointServiceImpl pointServiceImpl = new PointServiceImpl(new UserPointTable(), new PointHistoryTable());
         for (int i=0; i<10; i++){
-            pointService.insertOrUpdate(id,point, TransactionType.CHARGE);
+            pointServiceImpl.insertOrUpdate(id,point, TransactionType.CHARGE);
         }
         for (int i=0; i<5; i++){
-            pointService.insertOrUpdate(id,point, TransactionType.USE);
+            pointServiceImpl.insertOrUpdate(id,point, TransactionType.USE);
         }
         // when
-        List<PointHistory> pointHistoryList = pointService.selectHistory(id);
+        List<PointHistory> pointHistoryList = pointServiceImpl.selectHistory(id);
 
         // then
         assertThat(pointHistoryList.size()).isEqualTo(15);
